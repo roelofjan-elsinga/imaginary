@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.17
-FROM golang:${GOLANG_VERSION}-bullseye as builder
+FROM golang:${GOLANG_VERSION}-buster as builder
 
 ARG IMAGINARY_VERSION=dev
 ARG LIBVIPS_VERSION=8.12.2
