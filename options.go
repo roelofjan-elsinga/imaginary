@@ -150,7 +150,6 @@ func BimgOptions(o ImageOptions) bimg.Options {
 		Rotate:         bimg.Angle(o.Rotate),
 		Interlace:      o.Interlace,
 		Palette:        o.Palette,
-		Speed:          o.Speed,
 	}
 
 	if len(o.Background) != 0 {
