@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.17
-FROM golang:${GOLANG_VERSION}-buster as builder
+FROM golang:${GOLANG_VERSION}-bullseye as builder
 
 ARG IMAGINARY_VERSION=dev
 ARG LIBVIPS_VERSION=8.12.2
@@ -87,15 +87,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
   apt-get autoclean && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
-
-ADD https://github.com/jemalloc/jemalloc/releases/download/5.2.1/jemalloc-5.2.1.tar.bz2 /tmp/jemalloc-5.2.1.tar.bz2
-RUN apt-get update && apt install -y bzip2 gcc make autoconf
-RUN cd /tmp \
-    && tar -jxvf jemalloc-5.2.1.tar.bz2 --no-same-owner \
-    && cd jemalloc-5.2.1 \
-    && ./configure --enable-prof && make && make install \
-    && rm -rf /tmp/*
 ENV LD_PRELOAD=/usr/local/lib/libjemalloc.so
 
 # Server port to listen
