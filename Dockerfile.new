@@ -95,7 +95,7 @@ RUN go build -a \
     -ldflags="-s -w -h -X main.Version=${IMAGINARY_VERSION}" \
     .
 
-FROM scratch
+FROM debian:bookworm-slim
 
 COPY --from=builder /usr/local/lib /usr/local/lib
 COPY --from=builder /go/bin/imaginary /usr/local/bin/imaginary
