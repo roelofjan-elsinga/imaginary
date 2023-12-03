@@ -12,7 +12,7 @@ RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloa
 
 # generic build tools
 RUN --mount=type=cache,target=/var/cache/apt apt-get update \
-	&& apt-get install -y golang-1.21-go \
+	&& apt-get install --no-install-recommends -y golang-1.21-go \
 		build-essential \
 		wget \
 		curl ca-certificates \
@@ -23,7 +23,7 @@ RUN --mount=type=cache,target=/var/cache/apt apt-get update \
 RUN ( cd /usr/bin; ln -vsft . ../lib/go-1.*/bin/* ); type go
 
 # libvips required libraries
-RUN --mount=type=cache,target=/var/cache/apt apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt apt-get install --no-install-recommends -y \
 	libarchive-dev \
 	glib-2.0-dev \
 	libexpat1-dev \
@@ -94,9 +94,3 @@ RUN go build -a \
     -o ${GOPATH}/bin/imaginary \
     -ldflags="-s -w -h -X main.Version=${IMAGINARY_VERSION}" \
     .
-
-FROM debian:bookworm-slim
-
-COPY --from=builder /usr/local/lib /usr/local/lib
-COPY --from=builder /go/bin/imaginary /usr/local/bin/imaginary
-COPY --from=builder /etc/ssl/certs /etc/ssl/certs
