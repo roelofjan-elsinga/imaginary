@@ -27,6 +27,7 @@ type ServerOptions struct {
 	Gzip               bool // deprecated
 	AuthForwarding     bool
 	EnableURLSource    bool
+	AllowInsecureSSL   bool
 	EnablePlaceholder  bool
 	EnableURLSignature bool
 	URLSignatureKey    string

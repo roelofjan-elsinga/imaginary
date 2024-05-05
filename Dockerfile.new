@@ -1,0 +1,96 @@
+FROM debian:bookworm-backports as builder
+
+ARG IMAGINARY_VERSION=dev
+ARG GOLANGCILINT_VERSION=1.55.2
+
+# https://github.com/jcupitt/docker-builds/blob/master/libvips-heroku22/Dockerfile
+ARG VIPS_VERSION=8.15.0
+ARG VIPS_URL=https://github.com/libvips/libvips/releases/download
+
+# cache control
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | tee /etc/apt/apt.conf.d/keep-cache
+
+# generic build tools
+RUN --mount=type=cache,target=/var/cache/apt apt-get update \
+	&& apt-get install --no-install-recommends -y golang-1.21-go \
+		build-essential \
+		wget \
+		curl ca-certificates \
+		meson \
+		ninja-build \
+		pkg-config
+
+RUN ( cd /usr/bin; ln -vsft . ../lib/go-1.*/bin/* ); type go
+
+# libvips required libraries
+RUN --mount=type=cache,target=/var/cache/apt apt-get install --no-install-recommends -y \
+	libarchive-dev \
+	glib-2.0-dev \
+	libexpat1-dev \
+	libpango1.0-dev \
+	librsvg2-dev \
+	libwebp-dev \
+	libtiff5-dev \
+	libexif-dev \
+	liblcms2-dev \
+	liborc-0.4-dev \
+	libimagequant-dev \
+	libpoppler-glib-dev \
+	libcgif-dev \
+	libheif-dev \
+	libfftw3-dev
+
+WORKDIR /usr/local/src
+
+# build to this prefix
+ARG PREFIX=/usr/local
+ENV PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+
+# use libspng for PNG load and save
+ARG SPNG_VERSION=0.7.4
+ARG SPNG_URL=https://github.com/randy408/libspng/archive/refs/tags
+
+RUN wget ${SPNG_URL}/v${SPNG_VERSION}.tar.gz \
+	&& tar xf v${SPNG_VERSION}.tar.gz \
+	&& cd libspng-${SPNG_VERSION} \
+	&& meson build --prefix=${PREFIX} --libdir=lib \
+	&& cd build \
+	&& ninja \
+	&& ninja install
+
+
+# Build & install libvips
+RUN wget ${VIPS_URL}/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz \
+	&& tar xf vips-${VIPS_VERSION}.tar.xz \
+	&& cd vips-${VIPS_VERSION} \
+	&& meson setup build \
+		--prefix=$PREFIX \
+		--libdir=lib \
+		--buildtype=release \
+		-Dradiance=false \
+		-Danalyze=false \
+		-Dmodules=disabled \
+		-Dintrospection=disabled \
+	&& cd build \
+	&& meson compile \
+	&& meson install \
+	&& ldconfig
+
+ENV GOPATH=/go
+WORKDIR ${GOPATH}/src/github.com/h2non/imaginary
+
+# Cache go modules
+ENV GO111MODULE=on
+
+# Copy sources
+COPY . .
+#RUN ls -l
+#RUN --mount=type=cache,target=${GOPATH} ls -l
+RUN rm -f go.*; go mod init github.com/h2non/imaginary; go mod edit -replace github.com/h2non/bimg=github.com/suntong/bimg@dev; cat go.mod
+RUN go mod tidy
+
+# Compile imaginary
+RUN go build -a \
+    -o ${GOPATH}/bin/imaginary \
+    -ldflags="-s -w -h -X main.Version=${IMAGINARY_VERSION}" \
+    .
